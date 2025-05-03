@@ -39,6 +39,10 @@ jobs:
         echo "$BOTS" > bots.json
         USER=$(jq -r ".bot${{ matrix.bot_number }}.user" bots.json)
         PASS=$(jq -r ".bot${{ matrix.bot_number }}.pass" bots.json)
+
+        echo "::add-mask::$USER"
+        echo "::add-mask::$PASS"
+
         echo "USERNAME=$USER" >> $GITHUB_ENV
         echo "PASSWORD=$PASS" >> $GITHUB_ENV
     - name: Review Game
