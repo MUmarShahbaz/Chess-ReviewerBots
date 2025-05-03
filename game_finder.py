@@ -65,11 +65,11 @@ for archive in Archives:
     pre_urls.reverse() # Reverse the URLs to ensure latest are checked first
 
     for url in pre_urls:
-        if len(final_urls) == 10:
+        if len(final_urls) == 20:
             break
         final_urls.append(ReviewUrl(url))
         
-    if len(final_urls) == 10:
+    if len(final_urls) == 20:
         break
     
 SaveUrls(final_urls, "urls.txt")
