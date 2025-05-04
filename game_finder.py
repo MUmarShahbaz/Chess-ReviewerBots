@@ -4,6 +4,9 @@ import requests
 
 username = os.getenv("PLAYER")
 
+with open('bots.json', 'r') as file:
+    n = len(json.load(file))
+
 HEADERS = {
     "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
                   "AppleWebKit/537.36 (KHTML, like Gecko) "
@@ -65,11 +68,11 @@ for archive in Archives:
     pre_urls.reverse() # Reverse the URLs to ensure latest are checked first
 
     for url in pre_urls:
-        if len(final_urls) == 20:
+        if len(final_urls) == n:
             break
         final_urls.append(ReviewUrl(url))
         
-    if len(final_urls) == 20:
+    if len(final_urls) == n:
         break
     
 SaveUrls(final_urls, "urls.txt")

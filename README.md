@@ -5,7 +5,7 @@
 ## 🚀 Features
 
 - ⏰ **Daily Game Reviews** – Each bot reviews one recent game every day  
-- ⚖️ **Scalable Bot Control** – Just add or remove bots from the `BOTS` secret  
+- ⚖️ **Auto-Scaling Bots** – The script automatically detects and runs all defined bots
 - 🔐 **Secure by Design** – All sensitive data is safely stored in GitHub Secrets  
 - ⚙️ **Runs on GitHub Actions** – No server or manual scheduling needed  
 - 🐍 **Python-powered** – Easy to modify and extend
@@ -52,25 +52,16 @@ This project uses **GitHub Secrets** to ensure all usernames and credentials are
 3. Click **New repository secret** and add:
    - `PLAYER` → your main username (as a string)
    - `BOTS` → the JSON object above with your actual bot credentials
-4. **Edit `AutoReviewGames.yml`** and update the `matrix.bot_number` array to match the number of bots in your `BOTS` secret
-
-### 🧩 Example Matrix Update
-
-If your `BOTS` secret has 3 bots, then in `.github/workflows/AutoReviewGames.yml`:
-
-```YAML
-matrix:
-  bot_number: [1, 2, 3]
-```
-
-> ⚠️ **Important:** You must keep the number of entries in `bot_number` **exactly equal** to the number of bots defined in the `BOTS` secret. This ensures proper parallel execution.
+4. ✅ That’s it! The Python script automatically detects and runs each bot—no need to modify workflows.
 
 ## 🔄 How It Works
 
 - GitHub Actions runs once per day (schedule is configurable)
 - It uses the `PLAYER` secret to find your most recent games
-- Each bot in the `BOTS` secret logs in and reviews one game (in parallel using the matrix)
-- You can customize the logic to log results, store summaries, or send notifications
+- Each bot in the `BOTS` secret logs in and reviews one game
+- All bots are processed automatically—no manual scaling needed
+- At the end, a summary will be provided showing which bots succeeded and which failed
+- The Workflow succeeds if all bots were successful; if even one fails, the workflow will show as failed
 
 ## 📄 License
 
