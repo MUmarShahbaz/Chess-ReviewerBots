@@ -40,7 +40,7 @@ def run(playwright: Playwright, i) -> None:
     page.get_by_role("button", name="Log In").click()
     page.goto(review_url)
     try:
-        page.wait_for_selector(FINISH, timeout=5000)
+        page.wait_for_selector(FINISH, timeout=10000)
         #print(f"::notice::BOT {n} successfully reviewed")
         status.append(f"| BOT {n} | ✅ |\n")
     except:
