@@ -66,3 +66,38 @@ This project uses **GitHub Secrets** to ensure all usernames and credentials are
 ## 📄 License
 
 Licensed under the [MIT License](LICENSE.md).
+
+## Flowchart
+
+```mermaid
+---
+config:
+  theme: redux-dark
+---
+flowchart TD
+    A["GitHub Action Trigger
+    (Daily via CRON)"] --> B[Checkout Repo]
+    B --> C[Setup Python & Install Dependencies]
+    C --> D[Extract BOTS Secret to bots.json]
+    D --> E
+    subgraph E[Run game_finder.py]
+        E1[Fetch Archives from Chess.com API]
+        E2[Fetch Games per Archive]
+        E3[Filter Unreviewed & Valid Games]
+        E4[Select One Game per Bot]
+        E5[Save Review URLs to urls.txt]
+        E1 --> E2 --> E3 --> E4 --> E5
+    end
+    E --> F[Start Xvfb Display Server]
+    F --> G
+    subgraph G[Run reviewer.py]
+        G1["For Each Bot (from bots.json)"]
+        G2[Login to Chess.com via Playwright]
+        G3[Visit Review URL]
+        G4[Wait for Completion Indicator]
+        G5[Track Success or Failure]
+        G1 --> G2 --> G3 --> G4 --> G5
+    end
+    G --> H[Write Summary Report]
+    H --> I[Mark Job as Success or Failure]
+```
