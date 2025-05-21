@@ -5,8 +5,48 @@ on:
   - cron: '0 0 * * *'
 
 jobs:
-  Review:
+  Setup:
     runs-on: ubuntu-latest
+    outputs:
+      matrix: ${{ steps.set-matrix.outputs.matrix }}
+      urls: ${{ steps.export-urls.outputs.urls }}
+    steps:
+      - uses: actions/checkout@v3
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.13'
+      - name: Install dependencies
+        run: pip install requests
+      - name: Get BOTS
+        run: echo "$BOTS" > bots.json
+        env:
+          BOTS: ${{ secrets.BOTS }}
+      - name: Find Unreviewed Games
+        run: python game_finder.py
+        env:
+          PLAYER: ${{ secrets.PLAYER }}
+      - name: Export urls.txt as output
+        id: export-urls
+        run: |
+          URLS=$(cat urls.txt | base64 -w 0)
+          echo "urls=$URLS" >> $GITHUB_OUTPUT
+        shell: bash
+      - name: Count lines and set matrix
+        id: set-matrix
+        run: |
+          LINES=$(grep -cve '^\s*$' urls.txt)
+          COUNT=$(( (LINES + 4) / 5 ))
+          MATRIX=$(seq 1 $COUNT | jq -cs '.')
+          echo "matrix=$MATRIX" >> $GITHUB_OUTPUT
+        shell: bash
+  
+  Review:
+    needs: Setup
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        part: ${{ fromJson(needs.Setup.outputs.matrix) }}
     steps:
       - uses: actions/checkout@v3
       - name: Set up Python
@@ -17,22 +57,48 @@ jobs:
         run: |
           sudo apt-get update
           sudo apt-get install -y xvfb
-          pip install requests playwright
+          pip install playwright
           python -m playwright install chromium
       - name: Get BOTS
         env:
           BOTS: ${{ secrets.BOTS }}
         run: |
           echo "$BOTS" > bots.json
-      - name: Find Unreviewed Games
-        run: python game_finder.py
-        env:
-          PLAYER: ${{ secrets.PLAYER }}
+      - name: Restore urls.txt from output
+        run: |
+          echo "${{ needs.Setup.outputs.urls }}" | base64 -d > urls.txt
       - name: Simulate Display
         run: |
           export DISPLAY=':99.0'
           Xvfb :99 -screen 0 1920x1080x24 &
       - name: Review Game
-        run: python -u reviewer.py
+        run: |
+          python -u reviewer.py
+        continue-on-error: true
         env:
             DISPLAY: ":99.0"
+            JOB: ${{ matrix.part }}
+      - name: Upload summary artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: summary-${{ matrix.part }}
+          path: summary_${{ matrix.part }}.txt
+
+  Summarize:
+    needs: Review
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.13'
+      - name: Download all summary artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: summaries
+      - name: Collect summaries
+        run: |
+          grep -hv '^$' summaries/summary-*/summary_*.txt > all_summaries.txt
+      - name: Run Summary.py
+        run: python Summary.py

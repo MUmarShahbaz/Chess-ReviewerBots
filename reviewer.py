@@ -1,17 +1,18 @@
 import os
 import sys
 import json
-import time
 from playwright.sync_api import Playwright, sync_playwright, expect
 
 LOGIN_URL = "https://www.chess.com/login_and_go?returnUrl=https://www.chess.com/"
 FINISH = ".tab-review-start-review-wrapper"
-SUMMARY = os.getenv('GITHUB_STEP_SUMMARY')
+
+JOB = int(os.getenv("JOB"))
+OFFSET = (JOB - 1)*5
 
 with open('bots.json', 'r') as file:
     BOTS = json.load(file)
 
-def run(playwright: Playwright, i) -> None:
+def run(playwright: Playwright, i, idx) -> None:
     global failed
     global status
 
@@ -39,9 +40,9 @@ def run(playwright: Playwright, i) -> None:
     page.goto(review_url)
     try:
         page.wait_for_selector(FINISH, timeout=10000)
-        status[i] = 0
+        status[idx] = 0
     except:
-        status[i] = 1
+        status[idx] = 1
 
     # ---------------------
     context.close()
@@ -52,30 +53,19 @@ def run(playwright: Playwright, i) -> None:
 
 # MAIN CODE
 
-status = [1] * len(BOTS) # 1 means failed
-iteration_counter = 1
+start = OFFSET
+end = min(OFFSET + 5, len(BOTS))
+status = [1] * (end - start)  # Only for this chunk
 
-# Iterative Solver
-while sum(status) > 0 and iteration_counter <= 3:
-    print(f"\nIteration {iteration_counter}:")
-    for bot_num in range(len(status)):
-        if status[bot_num]:
-            print(f"\tRunning BOT {bot_num + 1}")
-            with sync_playwright() as playwright:
-                run(playwright, bot_num)
-            print(f"\tBOT {bot_num + 1} status: { "Failed" if status[bot_num] else "Succeeded" }\n")
-    iteration_counter = iteration_counter + 1
-    time.sleep(10)
+for idx, bot_num in enumerate(range(start, end)):
+    print(f"\tRunning BOT {bot_num + 1}")
+    with sync_playwright() as playwright:
+        run(playwright, bot_num, idx)
+    print(f"\tBOT {bot_num + 1} status: {'Failed' if status[idx] else 'Succeeded'}\n")
 
-
-with open(SUMMARY, 'w') as summary:
-    summary.write("# SUMMARY\n\n")
-    summary.write("| BOT N | STATUS |\n")
-    summary.write("|:-:|:-:|\n")
-    for i in range(len(status)):
-        if status[i]:
-            summary.write(f"| BOT {i + 1} | ❌ |\n")
-        else:
-            summary.write(f"| BOT {i + 1} | ✅ |\n") 
+# Write per-chunk summary file for artifact upload
+with open(f"summary_{JOB}.txt", 'w') as summary:
+    for idx, bot_num in enumerate(range(start, end)):
+        summary.write(f"{bot_num + 1},{status[idx]}\n")
 
 sys.exit(sum(status))
